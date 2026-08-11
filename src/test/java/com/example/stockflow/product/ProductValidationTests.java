@@ -15,22 +15,36 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Comprueba las restricciones de Bean Validation declaradas en {@link Product}
+ * sin iniciar Spring ni conectarse a la base de datos.
+ */
 class ProductValidationTests {
 
     private ValidatorFactory validatorFactory;
     private Validator validator;
 
+    /**
+     * Crea un validador nuevo antes de cada escenario.
+     */
     @BeforeEach
     void setUp() {
         validatorFactory = Validation.buildDefaultValidatorFactory();
         validator = validatorFactory.getValidator();
     }
 
+    /**
+     * Libera los recursos del proveedor de validación después de cada prueba.
+     */
     @AfterEach
     void tearDown() {
         validatorFactory.close();
     }
 
+    /**
+     * Comprueba que un producto completo y coherente no genere infracciones y
+     * se cree activo de forma predeterminada.
+     */
     @Test
     void validProductHasNoConstraintViolations() {
         Product product = new Product(
@@ -46,6 +60,10 @@ class ProductValidationTests {
         assertTrue(product.isActive());
     }
 
+    /**
+     * Comprueba que nombre, SKU, precio y stock informen errores cuando reciben
+     * valores inválidos.
+     */
     @Test
     void invalidProductReportsExpectedFields() {
         Product product = new Product(" ", "", BigDecimal.ZERO, -1);

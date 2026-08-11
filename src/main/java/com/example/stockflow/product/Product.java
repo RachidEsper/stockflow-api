@@ -16,6 +16,10 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
+/**
+ * Representa un producto administrado por StockFlow y define su mapeo hacia
+ * la tabla {@code products}.
+ */
 @Entity
 @Table(
         name = "products",
@@ -51,9 +55,21 @@ public class Product {
     @Column(nullable = false)
     private boolean active = true;
 
+    /**
+     * Constructor requerido por JPA para reconstruir entidades desde la base.
+     */
     protected Product() {
     }
 
+    /**
+     * Crea un producto nuevo y activo. El identificador será asignado por
+     * PostgreSQL cuando la entidad se persista.
+     *
+     * @param name nombre visible del producto
+     * @param sku código interno único
+     * @param price precio unitario
+     * @param stock cantidad disponible
+     */
     public Product(String name, String sku, BigDecimal price, Integer stock) {
         this.name = name;
         this.sku = sku;
@@ -61,47 +77,100 @@ public class Product {
         this.stock = stock;
     }
 
+    /**
+     * Devuelve el identificador persistente del producto.
+     *
+     * @return identificador generado o {@code null} antes de persistir
+     */
     public Long getId() {
         return id;
     }
 
+    /**
+     * Devuelve el nombre del producto.
+     *
+     * @return nombre visible
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * Actualiza el nombre del producto.
+     *
+     * @param name nuevo nombre visible
+     */
     public void setName(String name) {
         this.name = name;
     }
 
+    /**
+     * Devuelve el SKU del producto.
+     *
+     * @return código interno único
+     */
     public String getSku() {
         return sku;
     }
 
+    /**
+     * Actualiza el SKU del producto.
+     *
+     * @param sku nuevo código interno
+     */
     public void setSku(String sku) {
         this.sku = sku;
     }
 
+    /**
+     * Devuelve el precio unitario.
+     *
+     * @return precio del producto
+     */
     public BigDecimal getPrice() {
         return price;
     }
 
+    /**
+     * Actualiza el precio unitario.
+     *
+     * @param price nuevo precio positivo
+     */
     public void setPrice(BigDecimal price) {
         this.price = price;
     }
 
+    /**
+     * Devuelve la cantidad disponible.
+     *
+     * @return unidades en stock
+     */
     public Integer getStock() {
         return stock;
     }
 
+    /**
+     * Actualiza la cantidad disponible.
+     *
+     * @param stock nueva cantidad, igual o mayor que cero
+     */
     public void setStock(Integer stock) {
         this.stock = stock;
     }
 
+    /**
+     * Indica si el producto puede utilizarse actualmente.
+     *
+     * @return {@code true} cuando el producto está activo
+     */
     public boolean isActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
-        this.active = active;
+    /**
+     * Desactiva el producto sin eliminar su registro histórico.
+     */
+    public void deactivate() {
+        this.active = false;
     }
 }
