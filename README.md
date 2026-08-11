@@ -36,7 +36,6 @@ $env:DB_PASSWORD="tu-contraseña-local"
 .\mvnw.cmd spring-boot:run
 ```
 
-No guardes contraseñas reales en archivos versionados.
 
 ## Estado
 
