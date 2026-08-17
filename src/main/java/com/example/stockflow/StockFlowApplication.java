@@ -23,6 +23,7 @@ public class StockFlowApplication {
      */
     public static void main(String[] args) {
         SpringApplication.run(StockFlowApplication.class, args);
+        System.out.println("Mi primera API");
     }
 
 }
