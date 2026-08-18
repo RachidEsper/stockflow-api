@@ -36,6 +36,10 @@ public class Product {
     @Column(nullable = false, length = 120)
     private String name;
 
+    @Size(max = 500)
+    @Column(length = 500)
+    private String description;
+
     @NotBlank
     @Size(max = 50)
     @Column(nullable = false, length = 50)
@@ -71,7 +75,12 @@ public class Product {
      * @param stock cantidad disponible
      */
     public Product(String name, String sku, BigDecimal price, Integer stock) {
+        this(name, null, sku, price, stock);
+    }
+
+    public Product(String name, String description, String sku, BigDecimal price, Integer stock) {
         this.name = name;
+        this.description = description;
         this.sku = sku;
         this.price = price;
         this.stock = stock;
@@ -102,6 +111,14 @@ public class Product {
      */
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     /**

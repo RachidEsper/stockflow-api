@@ -7,6 +7,7 @@ import java.math.BigDecimal;
  *
  * @param id identificador generado por PostgreSQL
  * @param name nombre visible
+ * @param description descripción opcional
  * @param sku código interno normalizado
  * @param price precio unitario
  * @param stock cantidad disponible
@@ -15,9 +16,13 @@ import java.math.BigDecimal;
 public record ProductResponse(
         Long id,
         String name,
+        String description,
         String sku,
         BigDecimal price,
         Integer stock,
         boolean active
 ) {
+    public ProductResponse(Long id, String name, String sku, BigDecimal price, Integer stock, boolean active) {
+        this(id, name, null, sku, price, stock, active);
+    }
 }

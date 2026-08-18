@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -77,5 +78,18 @@ class ProductApiIntegrationTests {
                 .andExpect(jsonPath("$.active").value(true));
 
         assertEquals(1L, productRepository.count());
+    }
+
+    @Test
+    void rejectedStockDecreaseDoesNotChangePersistedStock() throws Exception {
+        Product product = productRepository.saveAndFlush(new Product(
+                "Mechanical Keyboard", "KEY-001", new java.math.BigDecimal("129.90"), 3));
+
+        mockMvc.perform(patch("/api/products/{id}/stock/decrease", product.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantity\":4}"))
+                .andExpect(status().isConflict());
+
+        assertEquals(3, productRepository.findById(product.getId()).orElseThrow().getStock());
     }
 }

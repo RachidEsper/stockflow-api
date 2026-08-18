@@ -63,6 +63,7 @@ public class ProductService {
 
         Product product = new Product(
                 normalizeName(request.name()),
+                normalizeDescription(request.description()),
                 normalizedSku,
                 request.price(),
                 request.stock()
@@ -88,6 +89,7 @@ public class ProductService {
         ensureSkuIsAvailableForUpdate(normalizedSku, id);
 
         product.setName(normalizeName(request.name()));
+        product.setDescription(normalizeDescription(request.description()));
         product.setSku(normalizedSku);
         product.setPrice(request.price());
         product.setStock(request.stock());
@@ -107,6 +109,23 @@ public class ProductService {
         Product product = requireProduct(id);
         product.deactivate();
         productRepository.save(product);
+    }
+
+    @Transactional
+    public ProductResponse increaseStock(Long id, int quantity) {
+        Product product = requireProduct(id);
+        product.setStock(Math.addExact(product.getStock(), quantity));
+        return toResponse(productRepository.save(product));
+    }
+
+    @Transactional
+    public ProductResponse decreaseStock(Long id, int quantity) {
+        Product product = requireProduct(id);
+        if (quantity > product.getStock()) {
+            throw new InsufficientStockException(id, product.getStock(), quantity);
+        }
+        product.setStock(product.getStock() - quantity);
+        return toResponse(productRepository.save(product));
     }
 
     /**
@@ -158,6 +177,13 @@ public class ProductService {
         return name.trim();
     }
 
+    private String normalizeDescription(String description) {
+        if (description == null || description.isBlank()) {
+            return null;
+        }
+        return description.trim();
+    }
+
     /**
      * Elimina espacios externos y convierte el SKU a mayúsculas de forma
      * independiente del idioma del sistema.
@@ -179,6 +205,7 @@ public class ProductService {
         return new ProductResponse(
                 product.getId(),
                 product.getName(),
+                product.getDescription(),
                 product.getSku(),
                 product.getPrice(),
                 product.getStock(),

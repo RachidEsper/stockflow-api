@@ -253,6 +253,44 @@ class ProductServiceTests {
         verify(productRepository, never()).delete(any(Product.class));
     }
 
+    @Test
+    void increasesStock() {
+        Product product = persistedProduct(1L, "Keyboard", "KEY-001", "129.90", 10);
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepository.save(product)).thenReturn(product);
+
+        ProductResponse result = productService.increaseStock(1L, 5);
+
+        assertEquals(15, result.stock());
+        verify(productRepository).save(product);
+    }
+
+    @Test
+    void decreasesStockWithoutGoingBelowZero() {
+        Product product = persistedProduct(1L, "Keyboard", "KEY-001", "129.90", 10);
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepository.save(product)).thenReturn(product);
+
+        ProductResponse result = productService.decreaseStock(1L, 10);
+
+        assertEquals(0, result.stock());
+    }
+
+    @Test
+    void rejectsDecreaseWhenStockIsInsufficient() {
+        Product product = persistedProduct(1L, "Keyboard", "KEY-001", "129.90", 3);
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+
+        InsufficientStockException exception = assertThrows(
+                InsufficientStockException.class,
+                () -> productService.decreaseStock(1L, 4)
+        );
+
+        assertEquals(3, product.getStock());
+        assertTrue(exception.getMessage().contains("disponible 3, solicitado 4"));
+        verify(productRepository, never()).save(product);
+    }
+
     /**
      * Construye una entidad que simula haber sido persistida asignándole un ID
      * mediante la utilidad de reflexión de Spring para tests.

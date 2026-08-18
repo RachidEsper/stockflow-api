@@ -2,6 +2,7 @@ package com.example.stockflow.common.error;
 
 import com.example.stockflow.product.DuplicateSkuException;
 import com.example.stockflow.product.ProductNotFoundException;
+import com.example.stockflow.product.InsufficientStockException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
@@ -59,6 +60,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateSkuException.class)
     public ResponseEntity<ApiErrorResponse> handleDuplicateSku(
             DuplicateSkuException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                exception.getMessage(),
+                request.getRequestURI(),
+                Map.of()
+        );
+    }
+
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<ApiErrorResponse> handleInsufficientStock(
+            InsufficientStockException exception,
             HttpServletRequest request
     ) {
         return buildResponse(

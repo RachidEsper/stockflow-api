@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -216,6 +217,42 @@ class ProductControllerTests {
                 .andExpect(status().isNoContent());
 
         verify(productService).deactivate(1L);
+    }
+
+    @Test
+    void increasesStock() throws Exception {
+        ProductResponse response = new ProductResponse(
+                1L, "Mechanical Keyboard", "KEY-001", new BigDecimal("129.90"), 15, true);
+        when(productService.increaseStock(1L, 5)).thenReturn(response);
+
+        mockMvc.perform(patch("/api/products/1/stock/increase")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantity\":5}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stock").value(15));
+    }
+
+    @Test
+    void rejectsNonPositiveStockMovement() throws Exception {
+        mockMvc.perform(patch("/api/products/1/stock/decrease")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantity\":0}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.quantity").exists());
+    }
+
+    @Test
+    void returnsConflictWhenStockIsInsufficient() throws Exception {
+        when(productService.decreaseStock(1L, 11))
+                .thenThrow(new InsufficientStockException(1L, 10, 11));
+
+        mockMvc.perform(patch("/api/products/1/stock/decrease")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantity\":11}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message").value(
+                        "Stock insuficiente para el producto con id 1: disponible 10, solicitado 11"));
     }
 
     /**
