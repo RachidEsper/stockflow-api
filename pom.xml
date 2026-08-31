@@ -10,9 +10,9 @@
     </parent>
     <groupId>com.example</groupId>
     <artifactId>stockflow-api</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <name>StockFlow API</name>
-    <description>API REST para gestión de productos e inventario básico</description>
+    <description>API REST para gestión de productos, inventario y clientes</description>
     <properties>
         <java.version>21</java.version>
     </properties>
