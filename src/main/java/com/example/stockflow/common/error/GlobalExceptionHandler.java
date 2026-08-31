@@ -1,8 +1,10 @@
 package com.example.stockflow.common.error;
 
+import com.example.stockflow.customer.CustomerNotFoundException;
+import com.example.stockflow.customer.DuplicateEmailException;
 import com.example.stockflow.product.DuplicateSkuException;
-import com.example.stockflow.product.ProductNotFoundException;
 import com.example.stockflow.product.InsufficientStockException;
+import com.example.stockflow.product.ProductNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
@@ -60,6 +62,46 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateSkuException.class)
     public ResponseEntity<ApiErrorResponse> handleDuplicateSku(
             DuplicateSkuException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                exception.getMessage(),
+                request.getRequestURI(),
+                Map.of()
+        );
+    }
+
+    /**
+     * Convierte la ausencia de un cliente en una respuesta 404.
+     *
+     * @param exception excepción producida por el servicio
+     * @param request petición HTTP original
+     * @return detalle uniforme del error
+     */
+    @ExceptionHandler(CustomerNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleCustomerNotFound(
+            CustomerNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.NOT_FOUND,
+                exception.getMessage(),
+                request.getRequestURI(),
+                Map.of()
+        );
+    }
+
+    /**
+     * Convierte un conflicto de email en una respuesta 409.
+     *
+     * @param exception excepción producida por el servicio
+     * @param request petición HTTP original
+     * @return detalle uniforme del conflicto
+     */
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<ApiErrorResponse> handleDuplicateEmail(
+            DuplicateEmailException exception,
             HttpServletRequest request
     ) {
         return buildResponse(

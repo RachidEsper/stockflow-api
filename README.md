@@ -1,10 +1,10 @@
 # StockFlow API
 
-API REST de inventario básico creada como proyecto de portfolio. StockFlow permite registrar productos, mantener sus datos y controlar entradas y salidas de stock sin permitir existencias negativas.
+API REST creada como proyecto de portfolio para administrar productos, inventario y clientes. StockFlow permite mantener el catálogo, controlar entradas y salidas de stock sin permitir existencias negativas y gestionar clientes con emails únicos.
 
-**Versión actual:** `1.0.0`
+**Versión actual:** `1.1.0`
 
-**Estado:** funcional y lista para demostración como proyecto de portfolio.
+**Estado:** funcional y lista para demostración local.
 
 ## Stack
 
@@ -16,69 +16,115 @@ API REST de inventario básico creada como proyecto de portfolio. StockFlow perm
 - PostgreSQL
 - Maven
 
-## Funcionalidades v1
+## Funcionalidades
+
+### Productos e inventario
 
 - Crear, listar, consultar y actualizar productos.
 - Desactivar productos mediante borrado lógico.
 - Aumentar y disminuir stock.
 - Rechazar cantidades inválidas y stock insuficiente.
-- Validar el contrato HTTP y devolver errores uniformes.
 - Mantener SKU únicos normalizados en mayúsculas.
 
 Los productos contienen `id`, `name`, `description` opcional, `sku`, `price`, `stock` y `active`.
 
-La versión 1.0.0 está enfocada exclusivamente en productos e inventario. No incluye autenticación, ventas, clientes ni frontend.
+### Clientes
+
+- Crear, listar, consultar y actualizar clientes.
+- Desactivar clientes mediante borrado lógico.
+- Validar nombres obligatorios y formato de email.
+- Mantener emails únicos sin distinguir mayúsculas y minúsculas.
+- Normalizar espacios en nombres y emails en minúsculas.
+
+Los clientes contienen `id`, `firstName`, `lastName`, `email` y `active`. Al desactivar un cliente su fila permanece en PostgreSQL con `active=false`.
+
+### Contrato HTTP
+
+- Validación centralizada de cuerpos JSON.
+- Respuestas de error uniformes.
+- `400 Bad Request` para datos o JSON inválidos.
+- `404 Not Found` para identificadores inexistentes.
+- `409 Conflict` para SKU o email duplicados y stock insuficiente.
+
+La versión actual no incluye autenticación, ventas ni frontend.
 
 ## Arquitectura
 
 ```text
-Cliente HTTP -> ProductController -> ProductService -> ProductRepository -> PostgreSQL
+Cliente HTTP
+    -> Controller
+    -> Service
+    -> Repository
+    -> Hibernate / JDBC
+    -> PostgreSQL
 ```
 
-El Controller gestiona HTTP y validación de entrada; el Service concentra las reglas de negocio y transacciones; el Repository usa Spring Data JPA para persistir entidades. Los DTO evitan exponer directamente la entidad JPA.
+Los Controllers gestionan HTTP y validan los DTO de entrada. Los Services concentran reglas de negocio y transacciones. Los Repositories usan Spring Data JPA para persistir entidades. Los DTO de respuesta evitan exponer directamente las entidades JPA y `GlobalExceptionHandler` transforma excepciones de negocio en errores HTTP uniformes.
 
-## Requisitos y PostgreSQL
+## Requisitos
 
 - JDK 21
-- PostgreSQL en ejecución
-- Base de datos `stockflow`
-- Usuario con acceso a esa base
+- PostgreSQL en ejecución en el puerto `5432`
+- Maven Wrapper incluido en el repositorio
 
-La conexión se configura mediante variables de entorno:
+## Preparar PostgreSQL
 
-| Variable | Obligatoria | Predeterminado |
+Desde pgAdmin o `psql`, conectado como un usuario administrador, crea primero el rol de la aplicación y después la base:
+
+```sql
+CREATE ROLE stockflow_app
+WITH LOGIN
+PASSWORD 'tu-contraseña-local';
+
+CREATE DATABASE stockflow
+OWNER stockflow_app;
+```
+
+Si la base ya existe, se puede asignar el propietario con:
+
+```sql
+ALTER DATABASE stockflow OWNER TO stockflow_app;
+```
+
+Comprueba las credenciales desde una terminal:
+
+```bash
+psql -h 127.0.0.1 -p 5432 -U stockflow_app -d stockflow -W
+```
+
+Hibernate crea y actualiza las tablas locales mediante `spring.jpa.hibernate.ddl-auto=update` al iniciar la aplicación.
+
+## Variables de entorno
+
+| Variable | Obligatoria | Valor predeterminado |
 | --- | --- | --- |
 | `DB_PASSWORD` | Sí | Sin valor |
 | `DB_URL` | No | `jdbc:postgresql://localhost:5432/stockflow` |
-| `DB_USERNAME` | No | `StockFlowApp` |
+| `DB_USERNAME` | No | `stockflow_app` |
 
-Ejemplo mínimo de preparación ejecutado con un usuario administrador de PostgreSQL:
+El repositorio incluye `.env.example` como referencia. Copia sus nombres a un `.env` local y reemplaza la contraseña, pero no versiones ese archivo. Spring Boot no carga `.env` automáticamente.
 
-```sql
-CREATE DATABASE stockflow;
-CREATE USER "StockFlowApp" WITH PASSWORD 'tu-contraseña';
-GRANT ALL PRIVILEGES ON DATABASE stockflow TO "StockFlowApp";
+En Linux o macOS:
+
+```bash
+export DB_URL="jdbc:postgresql://localhost:5432/stockflow"
+export DB_USERNAME="stockflow_app"
+export DB_PASSWORD="tu-contraseña-local"
+./mvnw spring-boot:run
 ```
 
-El usuario también debe poder crear y modificar objetos en el esquema usado por la aplicación. En un entorno local con PostgreSQL moderno puede ser necesario:
-
-```sql
-\c stockflow
-GRANT USAGE, CREATE ON SCHEMA public TO "StockFlowApp";
-```
-
-No guardes contraseñas reales en archivos versionados. En PowerShell:
+En PowerShell:
 
 ```powershell
-$env:DB_PASSWORD="tu-contraseña"
-$env:DB_USERNAME="StockFlowApp"
 $env:DB_URL="jdbc:postgresql://localhost:5432/stockflow"
+$env:DB_USERNAME="stockflow_app"
+$env:DB_PASSWORD="tu-contraseña-local"
 .\mvnw.cmd spring-boot:run
 ```
 
-En IntelliJ IDEA, agrega las mismas variables en **Run > Edit Configurations > Environment variables**.
+En IntelliJ IDEA agrega las mismas variables en **Run > Edit Configurations > Environment variables**. Las contraseñas reales no deben guardarse en `application.properties` ni enviarse a Git.
 
-## Endpoints
+## Endpoints de productos
 
 | Método | Ruta | Descripción | Estado exitoso |
 | --- | --- | --- | --- |
@@ -90,7 +136,7 @@ En IntelliJ IDEA, agrega las mismas variables en **Run > Edit Configurations > E
 | `PATCH` | `/api/products/{id}/stock/increase` | Aumentar stock | `200 OK` |
 | `PATCH` | `/api/products/{id}/stock/decrease` | Disminuir stock | `200 OK` |
 
-Crear o actualizar:
+Crear o actualizar un producto:
 
 ```json
 {
@@ -110,14 +156,40 @@ Mover stock:
 }
 ```
 
-Las validaciones devuelven `400 Bad Request`, un ID inexistente devuelve `404 Not Found` y un SKU duplicado o una salida con stock insuficiente devuelve `409 Conflict`.
+## Endpoints de clientes
+
+| Método | Ruta | Descripción | Estado exitoso |
+| --- | --- | --- | --- |
+| `POST` | `/api/customers` | Crear cliente | `201 Created` |
+| `GET` | `/api/customers` | Listar clientes | `200 OK` |
+| `GET` | `/api/customers/{id}` | Consultar por ID | `200 OK` |
+| `PUT` | `/api/customers/{id}` | Actualizar cliente | `200 OK` |
+| `DELETE` | `/api/customers/{id}` | Desactivar cliente | `204 No Content` |
+
+Crear o actualizar un cliente:
+
+```json
+{
+  "firstName": "Ada",
+  "lastName": "Lovelace",
+  "email": "ada@example.com"
+}
+```
+
+Una creación exitosa devuelve el cliente, la cabecera `Location` y estado `201 Created`. El listado incluye clientes activos e inactivos ordenados por apellido y nombre.
 
 ## Tests
 
+La suite incluye validaciones, tests unitarios de Service, contrato MVC, Repository contra PostgreSQL y recorridos de integración desde HTTP hasta la base.
+
 Con PostgreSQL y las variables de entorno configuradas:
+
+```bash
+./mvnw verify
+```
+
+En Windows:
 
 ```powershell
 .\mvnw.cmd verify
 ```
-
-La suite incluye tests unitarios del Service, validaciones, contrato MVC y pruebas de integración contra PostgreSQL.
